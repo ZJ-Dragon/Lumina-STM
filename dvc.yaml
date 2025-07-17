@@ -1,0 +1,10 @@
+stages:
+  preprocess_raw:
+    cmd: python scripts/raw_preprocess.py --cfg configs/dataloader_raw.yaml
+    deps:
+      - scripts/raw_preprocess.py
+      - configs/dataloader_raw.yaml
+      - filters   # RAW source hierarchy
+    outs:
+      - pipeline/raw_master
+      - pipeline/space2depth
