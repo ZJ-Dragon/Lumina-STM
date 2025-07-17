@@ -1,0 +1,24 @@
+#TODO: Remind everyone to change the dataset_root to their own path.
+
+
+# dataloader_raw.yaml
+# -------------------
+# Configuration for RawTensorDataset / DataLoader.
+#
+# 1. dataset_root :
+#    Absolute path to the directory that contains the `filters/`
+#    folders (ARW / NEF files organised by filter name).
+# 2. crop_size :
+#    Square crop size fed to the network. Must be an even number
+#    to maintain the RGGB Bayer phase.
+# 3. wb_jitter :
+#    White‑balance multiplicative jitter range. 0.1 means each
+#    channel gain ∈ [0.9, 1.1] during augmentation.
+# 4. num_workers :
+#    How many DataLoader worker processes to spawn.
+#
+dataset_root: "/Volumes/MobileWorkstation/Datasets/Lumina-STM"    # <--- change to your DATASETS_ROOT
+crop_size: 512                                                    # even number only
+wb_jitter: 0.10                                                   # ±10 % WB gain jitter
+num_workers: 8                                                    # DataLoader workers
+random_crop: true                                                 # set false ➜ centre crop
