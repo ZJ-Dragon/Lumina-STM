@@ -1,6 +1,3 @@
-#TODO: Remind everyone to change the dataset_root to their own path.
-
-
 # dataloader_raw.yaml
 # -------------------
 # Configuration for RawTensorDataset / DataLoader.
@@ -17,7 +14,8 @@
 # 4. num_workers :
 #    How many DataLoader worker processes to spawn.
 #
-dataset_root: "/Volumes/MobileWorkstation/Datasets/Lumina-STM"    # <--- change to your DATASETS_ROOT
+
+dataset_root: ${DATASETS_ROOT}                                    # Use ${DATASETS_ROOT} from your .env for dataset_root.
 crop_size: 512                                                    # even number only
 wb_jitter: 0.10                                                   # ±10 % WB gain jitter
 num_workers: 8                                                    # DataLoader workers
