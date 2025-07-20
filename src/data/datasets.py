@@ -1,5 +1,3 @@
-
-
 """
 datasets.py
 ===========
@@ -13,6 +11,7 @@ Features
 * Random crop with Bayer‑phase alignment (even coordinates).
 * Optional white‑balance jitter to improve robustness.
 * Multi‑process safe: each dataloader worker owns its own RawLoader.
+Pixel values are linear‑normalised by white‑level and **may be larger than 1.0** after white‑balance jitter.
 """
 
 from __future__ import annotations
@@ -109,8 +108,7 @@ class RawTensorDataset(Dataset):
             ).astype(np.float32)
             tensor = tensor * gains[None, None, :]
 
-        # clip to [0,1] after jitter
-        np.clip(tensor, 0.0, 1.0, out=tensor)
+        # Note: we intentionally keep values >1.0 (HDR headroom) for the model to learn tone‑mapping.
 
         # to CHW torch tensor
         tensor = torch.from_numpy(tensor).permute(2, 0, 1)  # (C,H,W)

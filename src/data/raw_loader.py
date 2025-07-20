@@ -59,14 +59,15 @@ class RawLoader:
         Returns
         -------
         np.ndarray
-            Array of shape (H/2, W/2, 4), dtype float32, values in [0, 1].
+            Array of shape (H/2, W/2, 4), dtype float32. Values are linear‑normalised by
+            camera white‑level and **may exceed 1.0** after white‑balance gains.
             Channel order = [R, G(top), G(bottom), B].
         """
         file = Path(file)
         if not file.exists():
             raise FileNotFoundError(f"RAW file not found: {file}")
 
-        with rawpy.imread(str(file), threaded=False) as raw:
+        with rawpy.imread(str(file)) as raw:
             mosaic = raw.raw_image_visible.astype(np.float32)
             raw_colors = raw.raw_colors_visible  # per‑pixel colour plane index
 
@@ -75,7 +76,7 @@ class RawLoader:
                 for ch_id, blk in enumerate(raw.black_level_per_channel):
                     mosaic[raw_colors == ch_id] -= blk
 
-            # 2) clip & normalise by white level
+            # 2) normalise by white level (retain HDR > 1 values)
             white = (
                 max(raw.camera_white_level_per_channel)
                 if raw.camera_white_level_per_channel
@@ -83,7 +84,8 @@ class RawLoader:
             )
             if white is None:
                 white = 16383.0  # fallback for 14‑bit RAW
-            mosaic = np.clip(mosaic, 0.0, white) / white
+            # Ensure no negative values, but **do not clip the high end**.
+            mosaic = np.maximum(mosaic, 0.0) / white
 
             # 3) apply camera white balance
             if self.apply_white_balance:
