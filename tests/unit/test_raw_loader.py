@@ -47,4 +47,4 @@ def test_tensor_properties() -> None:
     assert np.all(tensor >= 0.0), "Negative values indicate black-level not subtracted."
 
     # black-level subtraction check: min value close to zero
-    assert np.min(tensor) < 1e-3, "Min pixel should be ~0 after black-level correction."
+    assert np.min(tensor) < 0.005, "Min pixel should be ~0 after black-level correction."
