@@ -12,6 +12,7 @@ Features
 * Optional white‑balance jitter to improve robustness.
 * Multi‑process safe: each dataloader worker owns its own RawLoader.
 Pixel values are linear‑normalised by white‑level and **may be larger than 1.0** after white‑balance jitter.
+* Optional online augmentation via configs/augmentations.yaml.
 """
 
 from __future__ import annotations
@@ -23,6 +24,8 @@ from typing import List, Sequence
 
 import numpy as np
 import torch
+import yaml
+from .augmentations import build_pipeline
 from torch.utils.data import Dataset, get_worker_info
 
 from .raw_loader import RawLoader, raw_to_tensor
@@ -50,6 +53,10 @@ class RawTensorDataset(Dataset):
         crop_size: int = 512,
         wb_jitter: float = 0.1,
         random_crop: bool = True,
+        *,
+        augment_cfg: Path | str | None = None,
+        augment_mode: str = "none",
+        rng_seed: int | None = None,
     ) -> None:
         """
         Parameters
@@ -67,6 +74,17 @@ class RawTensorDataset(Dataset):
         self.crop_size = crop_size
         self.random_crop = random_crop
         self.wb_jitter = wb_jitter
+
+        # augmentation pipeline (online mode only)
+        self.pipeline = None
+        if augment_mode not in {"online", "offline", "none"}:
+            raise ValueError("augment_mode must be 'online', 'offline', or 'none'")
+        if augment_mode == "online":
+            if augment_cfg is None:
+                raise ValueError("augment_cfg is required when augment_mode='online'")
+            with Path(augment_cfg).expanduser().open("r") as f:
+                _cfg = yaml.safe_load(f)
+            self.pipeline = build_pipeline(_cfg, mode="online", seed=rng_seed)
 
         if crop_size % 2 != 0:
             raise ValueError("crop_size must be even to keep Bayer phase.")
@@ -107,6 +125,10 @@ class RawTensorDataset(Dataset):
                 1.0 - self.wb_jitter, 1.0 + self.wb_jitter, size=(4,)
             ).astype(np.float32)
             tensor = tensor * gains[None, None, :]
+
+        # apply online augmentation pipeline if present
+        if self.pipeline is not None:
+            tensor = self.pipeline(tensor)
 
         # Note: we intentionally keep values >1.0 (HDR headroom) for the model to learn tone‑mapping.
 
