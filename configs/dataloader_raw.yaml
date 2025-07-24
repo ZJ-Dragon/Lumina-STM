@@ -20,3 +20,5 @@ crop_size: 512                                                    # even number 
 wb_jitter: 0.10                                                   # ±10 % WB gain jitter
 num_workers: 8                                                    # DataLoader workers
 random_crop: true                                                 # set false ➜ centre crop
+use_augmentation: true                          # enable data augmentation
+augmentation_cfg: configs/augmentations.yaml    # path to global augmentation config
