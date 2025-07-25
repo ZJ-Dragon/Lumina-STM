@@ -1,5 +1,3 @@
-
-
 #!/usr/bin/env python3
 """
 raw_preprocess.py
@@ -13,6 +11,7 @@ converts them to:
 Usage
 -----
 $ python scripts/raw_preprocess.py --cfg configs/dataloader_raw.yaml
+    --augment {offline,online,none}   # offline ➜ run gen_aug_train.py
 
 The YAML must provide:
     dataset_root : str
@@ -24,6 +23,8 @@ from __future__ import annotations
 
 import argparse
 import multiprocessing as mp
+import subprocess
+import sys
 import shutil
 from pathlib import Path
 from typing import List, Tuple
@@ -93,6 +94,15 @@ def main() -> None:
     ap.add_argument(
         "--overwrite", action="store_true", help="Delete previous outputs first"
     )
+    ap.add_argument(
+        "--augment",
+        choices=["offline", "online", "none"],
+        default="none",
+        help="Data augmentation mode: "
+             "'offline' runs scripts/gen_aug_train.py, "
+             "'online' handled inside Dataset, "
+             "'none' disables augmentation.",
+    )
     args = ap.parse_args()
 
     cfg = parse_cfg(args.cfg)
@@ -123,6 +133,23 @@ def main() -> None:
         )
 
     print("Finished preprocessing.")
+
+    # ------------------------------------------------------------------
+    # Trigger offline augmentation if requested
+    # ------------------------------------------------------------------
+    if args.augment == "offline":
+        print("[raw_preprocess] ▶ Running offline augmentation ...")
+        cmd = [
+            sys.executable,
+            "scripts/gen_aug_train.py",
+            str(out_master_root),
+            str(out_master_root.parent / "aug_train"),
+            "--config",
+            "configs/augmentations.yaml",
+            "-j",
+            str(cfg.get("num_workers", mp.cpu_count())),
+        ]
+        subprocess.check_call(cmd)
 
 
 if __name__ == "__main__":
