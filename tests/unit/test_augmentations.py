@@ -15,6 +15,7 @@ import importlib
 from pathlib import Path
 
 import numpy as np
+import random
 import pytest
 
 # --------------------------------------------------------------------------- #
@@ -49,7 +50,7 @@ def test_transform_shape_value_range(dummy_img, name):
     t_cfg = {**t_cfg, "p": 1.0}
     transform = AUG_MOD._construct(name, t_cfg)
 
-    out = transform(dummy_img, np.random.RandomState(42))
+    out = transform(dummy_img, random.Random(42))
 
     assert out.shape == dummy_img.shape
     assert out.dtype == dummy_img.dtype
