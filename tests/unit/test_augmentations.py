@@ -48,6 +48,9 @@ def test_transform_shape_value_range(dummy_img, name):
     t_cfg = cfg_yaml["transforms"][name]
     # Force always‑on for test
     t_cfg = {**t_cfg, "p": 1.0}
+    # Ensure crop size fits the dummy image to avoid ValueError
+    if name == "random_crop":
+        t_cfg = {**t_cfg, "size": [128, 128]}  # smaller than 256×256
     transform = AUG_MOD._construct(name, t_cfg)
 
     out = transform(dummy_img, random.Random(42))
