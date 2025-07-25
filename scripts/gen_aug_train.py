@@ -31,6 +31,7 @@ from typing import Sequence
 
 import numpy as np
 import yaml
+from tqdm import tqdm
 
 # project imports – ensure PYTHONPATH includes repo root
 from src.data.augmentations import build_pipeline
@@ -44,13 +45,16 @@ def _process_one(
     dst_root: Path,
     pipeline_cfg: dict,
     seed_offset: int,
+    overwrite: bool,
 ) -> None:
     """Load a single .npy tensor, apply augmentation, save to aug_train dir."""
+    out_rel = src_path.relative_to(src_path.parents[1])  # keep camera sub‑dir
+    dst_path = dst_root / out_rel
+    if not overwrite and dst_path.exists():
+        return
     rng_seed = seed_offset + hash(src_path.name) % 2_000_000_000
     pipeline = build_pipeline(pipeline_cfg, mode="offline", seed=rng_seed)
 
-    out_rel = src_path.relative_to(src_path.parents[1])  # keep camera sub‑dir
-    dst_path = dst_root / out_rel
     dst_path.parent.mkdir(parents=True, exist_ok=True)
 
     arr = np.load(src_path)
@@ -73,13 +77,20 @@ def main(
     cfg_path: str | Path,
     workers: int,
     seed: int | None,
+    overwrite: bool,
 ) -> None:
     src_root = Path(src_dir).expanduser().resolve()
     dst_root = Path(dst_dir).expanduser().resolve()
     with Path(cfg_path).open("r") as f:
         pipeline_cfg = yaml.safe_load(f)
 
-    files = _gather_files(src_root)
+    files_all = _gather_files(src_root)
+    if overwrite:
+        files = files_all
+    else:
+        files = [f for f in files_all
+                 if not (dst_root / f.relative_to(src_root.parents[1])).with_suffix(".npy").exists()]
+
     if not files:
         raise RuntimeError(f"No .npy files found under {src_root}")
 
@@ -89,11 +100,13 @@ def main(
         dst_root=dst_root,
         pipeline_cfg=pipeline_cfg,
         seed_offset=0 if seed is None else seed,
+        overwrite=overwrite,
     )
 
     workers = workers or mp.cpu_count()
     with futures.ProcessPoolExecutor(max_workers=workers) as pool:
-        list(pool.map(proc, files))
+        for _ in tqdm(pool.map(proc, files), total=len(files), desc="Augment"):
+            pass
 
     print(f"[gen_aug_train] Done. {len(files)} files ➜ {dst_root}")
 
@@ -126,6 +139,12 @@ if __name__ == "__main__":
         help="Number of parallel worker processes (0 ➜ CPU count).",
     )
     parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing files in the destination folder. "
+             "If omitted, already‑generated tensors are skipped.",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=None,
@@ -133,4 +152,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    main(args.src, args.dst, args.config, args.workers, args.seed)
+    main(args.src, args.dst, args.config, args.workers, args.seed, args.overwrite)
