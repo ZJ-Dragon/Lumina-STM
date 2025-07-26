@@ -1,5 +1,3 @@
-
-
 # ---------------- Core scientific stack ----------------
 numpy>=1.23          # Fundamental array operations
 torch>=2.1.2         # PyTorch deep‑learning framework (CUDA / CPU)
@@ -14,6 +12,7 @@ Pillow>=10.0         # Basic image loading / saving (JPEG, TIFF)
 # ---------------- Data augmentation --------------------
 albumentations>=1.3  # Powerful CV augmentations (crop, noise, WB shift)
 imgaug>=0.4          # Extra augmentation ops (geometric / pixel)
+colour-science>=0.4.4  # Color science utilities (tone curves, color space)
 
 # ---------------- Utility & logging --------------------
 tqdm>=4.66           # Neat progress bars for preprocessing / training

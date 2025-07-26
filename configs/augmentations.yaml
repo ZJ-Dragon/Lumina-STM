@@ -1,0 +1,62 @@
+
+
+# Lumina‑STM ‑ Data Augmentation Master Config
+# All ranges are interpreted as inclusive [min, max]
+# Probabilities `p` are applied independently per sample when the transform is enabled
+# Mode-specific inclusion lists at the bottom decide which transforms are active
+version: 1
+
+global:
+  rng_seed: 42            # For deterministic debugging, set to a fixed int or null to randomise
+
+transforms:
+  exposure_shift:
+    enable: true
+    p: 0.8                # 80 % chance
+    ev_range: [-2.0, 2.0] # ±EV
+
+  white_balance_jitter:
+    enable: true
+    p: 0.6
+    rgb_gain_range: [0.9, 1.1]   # Gain multiplier for R & B; G is fixed at 1.0 by convention
+
+  curve_perturb:
+    enable: true
+    p: 0.5
+    slope_range: [0.8, 1.2]      # Linear section slope
+    pivot_range: [0.3, 0.7]      # Normalised pivot point for toe/shoulder
+
+  random_noise:
+    enable: true
+    p: 0.5
+    sigma_range: [0.0005, 0.01]  # White‐noise σ in linear HDR space (0‑4.0)
+    color_noise_ratio: 0.5       # Fraction of noise that is chroma‑dependent
+
+  gaussian_blur:
+    enable: true
+    p: 0.3
+    sigma_range: [0.2, 1.0]      # Pixel std‑dev for blur kernel
+
+  hflip:
+    enable: true
+    p: 0.5                       # Horizontal flip
+
+  vflip:
+    enable: false
+    p: 0.0                       # Disable by default to keep orientation metadata consistent
+
+  random_crop:
+    enable: true
+    p: 1.0
+    size: [512, 512]             # Height, Width in pixels (applied before space2depth if offline)
+
+modes:
+  offline:   # Done once → saved to `datasets/pipeline/aug_train`
+    include: [exposure_shift, white_balance_jitter, curve_perturb, random_noise]
+
+  online:    # On‑the‑fly during Dataset.__getitem__
+    include: [exposure_shift, white_balance_jitter, curve_perturb, random_noise,
+              gaussian_blur, hflip]
+
+  none:      # Diagnostics / overfit experiments
+    include: []

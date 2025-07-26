@@ -13,12 +13,14 @@
 | `scripts/raw_preprocess.py` | CLI 将 **`filte.../raw/`** 批量转换为 `pipeline/raw_master/` + `pipeline/space2depth/` |
 | `tests/unit/test_raw_loader.py` | 单元测试：形状 / 数值范围 / 黑电平正确性 |
 | `configs/dataloader_raw.yaml` | 数据根目录、裁剪尺寸、WB 抖动、DataLoader 线程数 |
-| `.env.example` | 运行时环境变量模板 |
-| `dvc.yaml`（stage `preprocess_raw`） | 单命令可复现的 **DVC** 预处理 |
+| `src/data/augmentations.py` | 曝光 / 白平衡 / 噪声等算子组合（共享 YAML） |
+| `scripts/gen_aug_train.py` | 多进程离线增强 → `pipeline/aug_train/` |
+| `configs/augmentations.yaml` | 离线 & 在线增强总开关 |
+| `dvc.yaml`（stage augment_train） | DVC 可复现的离线增强 |
 
 ---
 
-## 🛠 快速开始
+## 🛠 快速开始
 
 ```bash
 git clone https://github.com/your‑org/Lumina‑STM.git
@@ -30,8 +32,11 @@ pip install -r requirements.txt
 cp .env.example .env           # 修改路径 / 密钥
 source .env                    # 或使用 python‑dotenv
 
-# 2. 从 RAW 生成张量
-dvc repro preprocess_raw       # 或：python scripts/raw_preprocess.py --cfg configs/dataloader_raw.yaml
+# 2. 从 RAW 生成张量 +（可选）离线增强
+dvc repro preprocess_raw                 # 基础张量
+dvc repro augment_train                  # 额外增强张量
+# 或一次跑完：
+python scripts/raw_preprocess.py --cfg configs/dataloader_raw.yaml --augment offline -j 8
 
 # 3. DataLoader 烟雾测试
 pytest tests/unit/test_raw_loader.py -q
@@ -39,7 +44,7 @@ pytest tests/unit/test_raw_loader.py -q
 
 ---
 
-## 🗂 目录结构（简化版）
+## 🗂 目录结构（简化版）
 
 ```
 Lumina‑STM/
@@ -47,7 +52,8 @@ Lumina‑STM/
  │   └─ <filter>/raw/*.ARW
  ├─ pipeline/              # raw_preprocess.py 自动生成
  │   ├─ raw_master/        # 线性 Bayer (H,W,1)
- │   └─ space2depth/       # 打包 4‑通道张量 (H/2,W/2,4)
+ │   ├─ space2depth/       # 打包 4‑通道张量 (H/2,W/2,4)
+ │   └─ aug_train/         # 离线增强后的 4‑通道张量
  ├─ src/
  │   └─ data/              # RawLoader & Dataset
  └─ configs/               # YAML 配置
@@ -55,7 +61,7 @@ Lumina‑STM/
 
 ---
 
-## ⚙️ 环境变量
+## ⚙️ 环境变量
 
 | 键 | 示例 | 说明 |
 |-----|---------|-------|
@@ -68,7 +74,7 @@ Lumina‑STM/
 
 ---
 
-## 🧪 测试与 CI
+## 🧪 测试与 CI
 
 ```bash
 pytest -q                      # 单元测试
@@ -76,6 +82,20 @@ dvc repro preprocess_raw       # 数据管线可复现
 ```
 
 请在 `.github/workflows/ci.yml` 中添加 GitHub Action，以在每次 PR 时运行这两个命令。
+
+---
+
+## 🖍 数据增强挂钩
+
+离线与在线增强现共用同一份 YAML (`configs/augmentations.yaml`)。  
+离线生成的张量保存在 **`pipeline/aug_train/`**，可通过：
+
+```bash
+python scripts/gen_aug_train.py pipeline/raw_master pipeline/aug_train -j 8
+```
+
+生成。  
+详细算法与调参技巧参见 **`docs/data_augmentation.md`**（英文）或 **`docs/data_augmentation.zh-CN.md`**（中文）。
 
 ---
 

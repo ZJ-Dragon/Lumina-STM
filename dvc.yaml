@@ -8,3 +8,10 @@ stages:
     outs:
       - pipeline/raw_master
       - pipeline/space2depth
+  augment_train:
+    cmd: python scripts/gen_aug_train.py pipeline/raw_master pipeline/aug_train --config configs/augmentations.yaml -j 0
+    deps:
+      - scripts/gen_aug_train.py
+      - pipeline/raw_master
+    outs:
+      - pipeline/aug_train
