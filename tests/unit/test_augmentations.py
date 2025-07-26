@@ -55,7 +55,11 @@ def test_transform_shape_value_range(dummy_img, name):
 
     out = transform(dummy_img, random.Random(42))
 
-    assert out.shape == dummy_img.shape
+    # shape: random_crop changes spatial size, others keep it
+    expected_shape = (128, 128, 3) if name == "random_crop" else dummy_img.shape
+    assert out.shape == expected_shape, f"Shape mismatch for {name}"
+
+    # dtype and value range stay the same for all transforms
     assert out.dtype == dummy_img.dtype
     assert np.all(out >= 0.0) and np.all(out <= 4.0), f"Range violated for {name}"
 
